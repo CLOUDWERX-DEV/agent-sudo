@@ -1,0 +1,113 @@
+#!/usr/bin/env bash
+# agent-sudo-backend - Privileged execution backend for agent-sudo
+# This binary is invoked via sudo NOPASSWD by user cloudwerx.
+
+set -euo pipefail
+
+LOG_FILE="/var/log/agent-sudo.log"
+
+# Security check: Must run as root
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+  echo "[agent-sudo-backend] FATAL: Must be executed as root (UID 0)." >&2
+  exit 1
+fi
+
+CALLER_USER="${SUDO_USER:-$(id -un)}"
+
+# First argument is caller's working directory
+CALLER_CWD="${1:-/}"
+shift || true
+
+if [ $# -eq 0 ]; then
+  echo "[agent-sudo-backend] ERROR: No command supplied for execution." >&2
+  exit 1
+fi
+
+# Special handling for healthcheck
+if [ "$1" = "--healthcheck" ]; then
+  echo "OK: agent-sudo-backend healthy (UID=0, CALLER=${CALLER_USER})"
+  exit 0
+fi
+
+# Switch to caller's working directory if it exists
+if [ -d "${CALLER_CWD}" ]; then
+  cd "${CALLER_CWD}" 2>/dev/null || true
+fi
+
+# Defense-in-depth: Guardrails check on the root side
+check_guardrails() {
+  local cmd_str="$*"
+
+  # 1. Root / critical system recursive removal
+  local root_wipe_pattern='rm[[:space:]]+.*(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r|(-r|-R|--recursive)[[:space:]]+.*(-f|--force)|(-f|--force)[[:space:]]+.*(-r|-R|--recursive))[[:space:]]+.*(/[[:space:]]*$|/\*|/boot\b|/etc\b|/usr\b|/bin\b|/sbin\b|/lib\b)'
+  if [[ "${cmd_str}" =~ ${root_wipe_pattern} ]]; then
+    return 1
+  fi
+
+  # 2. Raw disk formatting or clobbering
+  local mkfs_pattern='(mkfs(\.[a-zA-Z0-9_-]+)?|wipefs)[[:space:]]+.*(/dev/sd|/dev/nvme|/dev/vd|/dev/mmcblk|/dev/mapper)'
+  if [[ "${cmd_str}" =~ ${mkfs_pattern} ]]; then
+    return 1
+  fi
+
+  local dd_pattern='dd[[:space:]]+.*of=/dev/(sd[a-z]|nvme[0-9]|vd[a-z]|mmcblk[0-9])'
+  if [[ "${cmd_str}" =~ ${dd_pattern} ]]; then
+    return 1
+  fi
+
+  # 3. Critical auth file direct tampering
+  local auth_tamper_pattern='(>|>>|rm)[[:space:]]*/etc/(shadow|passwd|sudoers)'
+  if [[ "${cmd_str}" =~ ${auth_tamper_pattern} ]]; then
+    return 1
+  fi
+
+  # 4. Fork bomb pattern
+  if [[ "${cmd_str}" == *":(){ :|:& };:"* ]] || [[ "${cmd_str}" == *":(){:|:&};:"* ]]; then
+    return 1
+  fi
+
+  return 0
+}
+
+TIMESTAMP="$(date --iso-8601=seconds 2>/dev/null || date '+%Y-%m-%d %H:%M:%S')"
+FULL_CMD="$*"
+
+if ! check_guardrails "$@"; then
+  # Log blocked attempt
+  echo "${TIMESTAMP} [BLOCKED] [USER=${CALLER_USER}] [PID=${PPID}] [CWD=${CALLER_CWD}] ${FULL_CMD}" >> "${LOG_FILE}" 2>/dev/null || true
+  echo "[agent-sudo-backend] BLOCKED: Guardrail violation on privileged backend." >&2
+  exit 126
+fi
+
+# Ensure log file exists with safe permissions
+if [ ! -f "${LOG_FILE}" ]; then
+  touch "${LOG_FILE}" 2>/dev/null || true
+  chmod 0644 "${LOG_FILE}" 2>/dev/null || true
+  chown root:"${CALLER_USER}" "${LOG_FILE}" 2>/dev/null || true
+fi
+
+# Append to audit log
+echo "${TIMESTAMP} [ALLOW] [USER=${CALLER_USER}] [PID=${PPID}] [CWD=${CALLER_CWD}] ${FULL_CMD}" >> "${LOG_FILE}" 2>/dev/null || true
+
+# Desktop notification (non-blocking, fire-and-forget)
+if [ -n "${CALLER_USER}" ] && [ -d "/run/user/1000" ]; then
+  CMD_SUMMARY="${FULL_CMD}"
+  if [ ${#CMD_SUMMARY} -gt 60 ]; then
+    CMD_SUMMARY="${CMD_SUMMARY:0:57}..."
+  fi
+
+  (
+    sudo -u "${CALLER_USER}" \
+      DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/1000/bus" \
+      XDG_RUNTIME_DIR="/run/user/1000" \
+      notify-send \
+        -a "agent-sudo" \
+        -i "security-high" \
+        -u low \
+        "Automated Elevated Execution" \
+        "User: ${CALLER_USER}\nCmd: ${CMD_SUMMARY}" >/dev/null 2>&1
+  ) &
+fi
+
+# Execute target command as root
+exec "$@"

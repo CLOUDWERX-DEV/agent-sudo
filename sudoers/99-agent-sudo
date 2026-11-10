@@ -1,0 +1,3 @@
+# CLOUDWERX OS - Non-interactive elevated runner
+# Allows user cloudwerx to execute the guarded backend runner without interactive password prompt.
+cloudwerx ALL=(ALL) NOPASSWD: /usr/local/libexec/agent-sudo-backend

@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+# agent-sudo - Non-interactive elevated execution runner for automated tooling
+# CLOUDWERX OS - Production grade privilege wrapper
+
+set -euo pipefail
+
+VERSION="0.1.0"
+BACKEND_BIN="/usr/local/libexec/agent-sudo-backend"
+LOG_FILE="/var/log/agent-sudo.log"
+
+show_help() {
+  cat <<'EOF'
+agent-sudo - Non-interactive elevated command runner
+
+USAGE:
+    agent-sudo <command> [args...]
+    agent-sudo [flags]
+
+FLAGS:
+    -h, --help       Show this help message
+    -v, --version    Show version information
+    -s, --status     Check installation status and sudoers configuration
+    -l, --logs [N]   View the last N audit log entries (default: 20)
+
+EXAMPLES:
+    agent-sudo pacman -S --noconfirm ripgrep
+    agent-sudo systemctl restart NetworkManager
+    agent-sudo tee /etc/systemd/system/myapp.service < app.service
+    agent-sudo --logs 10
+
+SECURITY:
+    Commands are checked against built-in guardrails before execution.
+    Catastrophic commands (e.g. raw disk writes, recursive root wipes) are blocked.
+    All executions are recorded in /var/log/agent-sudo.log and trigger a desktop toast.
+EOF
+}
+
+show_status() {
+  echo "=== agent-sudo status ==="
+  echo "Version: ${VERSION}"
+  echo -n "Backend binary: "
+  if [ -x "${BACKEND_BIN}" ]; then
+    echo "INSTALLED (${BACKEND_BIN})"
+  else
+    echo "MISSING (${BACKEND_BIN})"
+  fi
+
+  echo -n "Sudoers drop-in: "
+  if sudo -n -l 2>/dev/null | grep -q "${BACKEND_BIN}"; then
+    echo "CONFIGURED & ACTIVE"
+  else
+    echo "NOT ACTIVE (or requires password)"
+  fi
+
+  echo -n "Audit log: "
+  if [ -f "${LOG_FILE}" ]; then
+    echo "FOUND (${LOG_FILE}, $(wc -l < "${LOG_FILE}" 2>/dev/null || echo 0) lines)"
+  else
+    echo "NOT CREATED YET (${LOG_FILE})"
+  fi
+
+  echo -n "Health check: "
+  if sudo -n "${BACKEND_BIN}" "$PWD" --healthcheck 2>/dev/null; then
+    echo "PASS (Elevated runner operational)"
+  else
+    echo "FAIL (Cannot execute backend without password)"
+  fi
+}
+
+show_logs() {
+  local count="${1:-20}"
+  if [ ! -f "${LOG_FILE}" ]; then
+    echo "No log file found at ${LOG_FILE}" >&2
+    exit 0
+  fi
+  tail -n "${count}" "${LOG_FILE}"
+}
+
+check_guardrails() {
+  local cmd_str="$*"
+
+  # 1. Root / critical system recursive removal
+  local root_wipe_pattern='rm[[:space:]]+.*(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r|(-r|-R|--recursive)[[:space:]]+.*(-f|--force)|(-f|--force)[[:space:]]+.*(-r|-R|--recursive))[[:space:]]+.*(/[[:space:]]*$|/\*|/boot\b|/etc\b|/usr\b|/bin\b|/sbin\b|/lib\b)'
+  if [[ "${cmd_str}" =~ ${root_wipe_pattern} ]]; then
+    echo "[agent-sudo] BLOCKED: Command matches recursive root/system deletion guardrail." >&2
+    echo "[agent-sudo] Command: ${cmd_str}" >&2
+    return 1
+  fi
+
+  # 2. Raw disk formatting or clobbering
+  local mkfs_pattern='(mkfs(\.[a-zA-Z0-9_-]+)?|wipefs)[[:space:]]+.*(/dev/sd|/dev/nvme|/dev/vd|/dev/mmcblk|/dev/mapper)'
+  if [[ "${cmd_str}" =~ ${mkfs_pattern} ]]; then
+    echo "[agent-sudo] BLOCKED: Command matches raw disk formatting guardrail." >&2
+    echo "[agent-sudo] Command: ${cmd_str}" >&2
+    return 1
+  fi
+
+  local dd_pattern='dd[[:space:]]+.*of=/dev/(sd[a-z]|nvme[0-9]|vd[a-z]|mmcblk[0-9])'
+  if [[ "${cmd_str}" =~ ${dd_pattern} ]]; then
+    echo "[agent-sudo] BLOCKED: Command matches raw disk overwriting guardrail." >&2
+    echo "[agent-sudo] Command: ${cmd_str}" >&2
+    return 1
+  fi
+
+  # 3. Critical auth file direct tampering
+  local auth_tamper_pattern='(>|>>|rm)[[:space:]]*/etc/(shadow|passwd|sudoers)'
+  if [[ "${cmd_str}" =~ ${auth_tamper_pattern} ]]; then
+    echo "[agent-sudo] BLOCKED: Direct tampering with critical auth files (/etc/shadow, /etc/passwd, /etc/sudoers) is prohibited." >&2
+    echo "[agent-sudo] Command: ${cmd_str}" >&2
+    return 1
+  fi
+
+  # 4. Fork bomb pattern
+  if [[ "${cmd_str}" == *":(){ :|:& };:"* ]] || [[ "${cmd_str}" == *":(){:|:&};:"* ]]; then
+    echo "[agent-sudo] BLOCKED: Fork bomb pattern detected." >&2
+    return 1
+  fi
+
+  return 0
+}
+
+# Main entry point
+if [ $# -eq 0 ]; then
+  show_help
+  exit 1
+fi
+
+case "$1" in
+  -h|--help)
+    show_help
+    exit 0
+    ;;
+  -v|--version)
+    echo "agent-sudo ${VERSION}"
+    exit 0
+    ;;
+  -s|--status)
+    show_status
+    exit 0
+    ;;
+  -l|--logs)
+    shift
+    show_logs "${1:-20}"
+    exit 0
+    ;;
+esac
+
+# Pre-flight guardrail validation
+if ! check_guardrails "$@"; then
+  exit 126
+fi
+
+# Verify backend exists
+if [ ! -x "${BACKEND_BIN}" ]; then
+  echo "[agent-sudo] ERROR: Backend runner '${BACKEND_BIN}' not found or not executable." >&2
+  echo "[agent-sudo] Run installer: sudo ./install.sh" >&2
+  exit 127
+fi
+
+# Execute backend non-interactively via sudo
+exec sudo -n "${BACKEND_BIN}" "${PWD}" "$@"
