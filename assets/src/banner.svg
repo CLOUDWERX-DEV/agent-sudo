@@ -7,6 +7,6 @@
   <text x="372" y="156" font-family="'JetBrains Mono', 'JetBrainsMono Nerd Font Mono', 'Fira Code', Consolas, monospace" font-size="84" font-weight="800" letter-spacing="-4">
     <tspan fill="#0a0b11">agent-</tspan><tspan fill="#ec2f52">sudo</tspan>
   </text>
-  <text x="376" y="208" font-family="Inter, 'Inter Variable', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="24" fill="#566074">Root for your scripts. Guardrails and a paper trail.</text>
-  <rect x="376" y="232" width="150" height="3" rx="1.5" fill="#ffc857"/>
+  <text x="376" y="208" textLength="557" lengthAdjust="spacing" font-family="Inter, 'Inter Variable', 'Segoe UI', Helvetica, Arial, sans-serif" font-size="24" fill="#566074">Root for your scripts. Guardrails and a paper trail.</text>
+  <rect x="376" y="232" width="557" height="3" rx="1.5" fill="#ffc857"/>
 </svg>
