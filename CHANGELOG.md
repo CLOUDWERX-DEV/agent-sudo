@@ -1,19 +1,24 @@
 # Changelog
 
-All notable changes to `agent-sudo` are documented in this file.
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+All notable changes to `agent-sudo` are in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## [0.1.0] - 2026-11-10
+## [0.3.0] - 2026-11-26
+
+First public release.
 
 ### Added
-- Initial release of `agent-sudo`, a non-interactive privilege execution runner.
-- Frontend CLI (`bin/agent-sudo`) with pre-flight parameter parsing, guardrail enforcement, and `--status` / `--logs` inspection tools.
-- Elevated backend runner (`bin/agent-sudo-backend`) with root execution, caller working directory restoration, and defense-in-depth verification.
-- Audit logging pipeline recording timestamp, caller UID, PID, working directory, and execution status to `/var/log/agent-sudo.log`.
-- Graphical session desktop notification dispatch via `notify-send`.
-- Safety guardrails blocking destructive commands (root filesystem deletion, raw disk clobbering, direct auth file modifications, fork bombs).
-- Automated installer (`install.sh`) configuring `/usr/local/bin`, `/usr/local/libexec`, and verified `/etc/sudoers.d/99-agent-sudo` drop-in.
-- Fish shell completions (`completions/agent-sudo.fish`) with command wrapping and `asudo` shorthand support.
-- Bash shell completions (`completions/agent-sudo.bash`).
-- Automated test suite (`tests/test-guardrails.sh`) covering guardrail enforcement and standard command pass-through.
+
+- **One small Rust binary** (two dependencies) that is both the command (`agent-sudo`, short name `asudo`) and the root side (`agent-sudo-backend`, run by sudo with no password).
+- **Guardrails that read the command**, not a string: ten named rules (`root-delete`, `disk-format`, `disk-write`, `auth-files`, `recursive-perms`, `move-critical`, `find-delete`, `fork-bomb`, `unverifiable-delete`, `power`). They see through wrappers (`env`, `nice`, `timeout`, `sudo`...), read `sh -c` scripts, `$(...)`, backticks and redirections, and normalize paths (`//`, `..`, `.`, trailing `*`, relative paths, symlinks). Reading and listing is never blocked. The checks run on both sides, so the root side doesn't trust the first.
+- `--check` and `--explain` (which rule, and why), and `--rules` to list them.
+- **An audit log** (`/var/log/agent-sudo.log`) with `[ALLOW]`, `[BLOCKED]` and `[DONE]` lines: who, where, what, how it ended (`exit=`) and how long it took. Arguments are shell-quoted, and newlines, escape codes and other control characters are escaped so a command can't forge a line or fool a terminal. Weekly log rotation is installed.
+- **An optional policy file** (`/etc/agent-sudo.json`): `allow_programs` (only these may run, every program in a chain), `deny_programs`, `disable_rules` and `notify`. Typos, unknown keys and unsafe permissions make the root side refuse to run rather than quietly allow more.
+- **Desktop notifications** for every run and refusal, sent as the account that ran it with root's groups dropped, and with the command escaped.
+- `--install --user NAME` and `--uninstall [--purge]`: copies the root runner to a root-owned path, writes a one line sudoers rule (one account, one program) after `visudo` approves it, creates the log, logrotate rule and completions. It never guesses the account and refuses `root`. `--root DIR` stages everything in a folder for packagers.
+- `--status` checks the runner (root-owned, not writable by others), the sudoers rule, that sudo allows it without a password, a health check, the log and the policy file, and exits 0 only when the root runner really works.
+- `--logs [N]`, `--version`, `--completions fish|bash|zsh` and a `--` form for commands that start with a dash.
+- The command passes through exactly: it is `exec`ed into sudo, and the root side forwards `SIGTERM` and `SIGHUP`, waits, and returns the exit code (`128 + signal` if it was killed).
+- Docs (how it works, guardrails, policy), a security policy that says plainly what this is and isn't, a CI workflow, release binaries for x86_64 and aarch64, a PKGBUILD, a pixel-art mascot (`cargo run --example make_logo`) and issue and pull request templates.
+- Tests: well over a hundred table-driven guardrail cases, random-input tests, the root side run for real in a temporary directory, an installer test into a staging folder, and end to end tests of the real binary. Nothing in them runs `sudo`.
+
+[0.3.0]: https://github.com/CLOUDWERX-DEV/agent-sudo/releases/tag/v0.3.0

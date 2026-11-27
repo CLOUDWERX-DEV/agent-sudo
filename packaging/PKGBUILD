@@ -1,0 +1,37 @@
+# Maintainer: CLOUDWERX LAB <mail@cloudwerxlab.com>
+pkgname=agent-sudo
+pkgver=0.3.0
+pkgrel=1
+pkgdesc='Run commands as root without a password prompt, behind guardrails and an audit log'
+arch=('x86_64' 'aarch64')
+url='https://github.com/CLOUDWERX-DEV/agent-sudo'
+license=('MIT')
+depends=('sudo' 'gcc-libs' 'glibc')
+optdepends=('libnotify: desktop notifications for every elevated command')
+makedepends=('cargo')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+  cd "$pkgname-$pkgver"
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$pkgname-$pkgver"
+  cargo build --frozen --release
+}
+
+check() {
+  cd "$pkgname-$pkgver"
+  cargo test --frozen
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  install -Dm755 target/release/agent-sudo "$pkgdir/usr/bin/agent-sudo"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 examples/agent-sudo.json "$pkgdir/usr/share/doc/$pkgname/agent-sudo.json.example"
+}
+
+# After installing the package, turn it on once: sudo agent-sudo --install --user YOUR_USERNAME

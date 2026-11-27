@@ -1,0 +1,27 @@
+name: Guardrail gap
+description: A destructive command gets through, or a harmless one is blocked
+labels: [guardrail]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Which way is it wrong?
+      options:
+        - A destructive command is allowed
+        - A harmless command is blocked
+    validations:
+      required: true
+  - type: textarea
+    id: cmd
+    attributes:
+      label: The exact command
+      description: As the argument list, for example `rm -rf /etc/../usr`. Please don't run it for real to find out.
+      render: sh
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it's destructive, or why it's safe
+    validations:
+      required: true

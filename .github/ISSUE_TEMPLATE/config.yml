@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security problem in the root side, the log or the policy
+    url: https://github.com/CLOUDWERX-DEV/agent-sudo/security/advisories/new
+    about: Please report it privately, not in a public issue.

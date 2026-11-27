@@ -1,0 +1,26 @@
+[package]
+name = "agent-sudo"
+version = "0.3.0"
+edition = "2021"
+rust-version = "1.74"
+description = "Run commands as root without a password prompt, behind guardrails and an audit log. Built for scripts and agents that can't type a password."
+license = "MIT"
+authors = ["CLOUDWERX LAB <mail@cloudwerxlab.com>"]
+repository = "https://github.com/CLOUDWERX-DEV/agent-sudo"
+homepage = "https://cloudwerxlab.com"
+readme = "README.md"
+keywords = ["sudo", "privilege", "automation", "audit", "agents"]
+categories = ["command-line-utilities", "os::linux-apis"]
+
+[[bin]]
+name = "agent-sudo"
+path = "src/main.rs"
+
+[dependencies]
+libc = "0.2"
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true

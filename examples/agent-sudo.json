@@ -1,0 +1,6 @@
+{
+  "allow_programs": ["pacman", "systemctl", "tee", "mkdir", "chmod", "journalctl"],
+  "deny_programs": ["curl", "wget"],
+  "disable_rules": [],
+  "notify": true
+}
