@@ -1,6 +1,6 @@
 [package]
 name = "agent-sudo"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 rust-version = "1.74"
 description = "Run commands as root without a password prompt, behind guardrails and an audit log. Built for scripts and agents that can't type a password."

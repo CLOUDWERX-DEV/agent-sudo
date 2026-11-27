@@ -2,6 +2,12 @@
 
 All notable changes to `agent-sudo` are in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-11-26
+
+### Changed
+
+- Removed the files left over from the very first import (the old shell scripts, installer and their tests). Everything they did is in the Rust binary, and `--install` replaces the installer. Nothing else changed.
+
 ## [0.3.0] - 2026-11-26
 
 First public release.
@@ -21,4 +27,5 @@ First public release.
 - Docs (how it works, guardrails, policy), a security policy that says plainly what this is and isn't, a CI workflow, release binaries for x86_64 and aarch64, a PKGBUILD, a pixel-art mascot (`cargo run --example make_logo`) and issue and pull request templates.
 - Tests: well over a hundred table-driven guardrail cases, random-input tests, the root side run for real in a temporary directory, an installer test into a staging folder, and end to end tests of the real binary. Nothing in them runs `sudo`.
 
+[0.3.1]: https://github.com/CLOUDWERX-DEV/agent-sudo/releases/tag/v0.3.1
 [0.3.0]: https://github.com/CLOUDWERX-DEV/agent-sudo/releases/tag/v0.3.0
