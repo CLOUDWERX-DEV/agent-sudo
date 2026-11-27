@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png?v=3" alt="agent-sudo" width="720">
+  <img src="assets/banner.png?v=4" alt="agent-sudo" width="720">
 </p>
 
 <p align="center">
