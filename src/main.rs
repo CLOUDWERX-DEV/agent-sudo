@@ -191,9 +191,14 @@ fn status() -> i32 {
         Ok(_) => { line(false, "root runner", &format!("{BACKEND} is writable by someone other than root")); false }
         Err(_) => { line(false, "root runner", &format!("{BACKEND} is missing: sudo agent-sudo --install --user $USER")); false }
     };
-    let sudoers = std::fs::read_to_string(install::SUDOERS).ok().filter(|s| s.contains(BACKEND));
-    line(sudoers.is_some(), "sudoers rule", if sudoers.is_some() { install::SUDOERS } else { "not found, or unreadable without root (that's normal: it's mode 0440)" });
     let listed = Command::new("sudo").args(["-n", "-l", BACKEND]).output().map(|o| o.status.success()).unwrap_or(false);
+    let sudoers = std::fs::read_to_string(install::SUDOERS).ok().filter(|s| s.contains(BACKEND));
+    // the rule's file is mode 0440 (root only), so an ordinary account usually can't read it: sudo saying yes is the real test
+    match (&sudoers, listed) {
+        (Some(_), _) => line(true, "sudoers rule", install::SUDOERS),
+        (None, true) => line(true, "sudoers rule", &format!("{} (readable only by root; sudo allows it)", install::SUDOERS)),
+        (None, false) => line(false, "sudoers rule", "not found: sudo agent-sudo --install --user $USER"),
+    }
     line(listed, "sudo allows it without a password", "");
     let healthy = Command::new("sudo").args(["-n", BACKEND, "/", "--healthcheck"]).output().map(|o| o.status.success()).unwrap_or(false);
     line(healthy, "health check", if healthy { "the elevated runner works" } else { "can't run the backend without a password" });

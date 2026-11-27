@@ -2,6 +2,12 @@
 
 All notable changes to `agent-sudo` are in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.2] - 2026-11-27
+
+### Fixed
+
+- `--status` no longer shows a failing "sudoers rule" line when the rule is fine. The rule's file is mode 0440 and an ordinary account usually can't read it, so it now counts sudo's own answer (`sudo -n -l`) as the real test and says "readable only by root; sudo allows it".
+
 ## [0.3.1] - 2026-11-26
 
 ### Changed
@@ -27,5 +33,6 @@ First public release.
 - Docs (how it works, guardrails, policy), a security policy that says plainly what this is and isn't, a CI workflow, release binaries for x86_64 and aarch64, a PKGBUILD, a pixel-art mascot (`cargo run --example make_logo`) and issue and pull request templates.
 - Tests: well over a hundred table-driven guardrail cases, random-input tests, the root side run for real in a temporary directory, an installer test into a staging folder, and end to end tests of the real binary. Nothing in them runs `sudo`.
 
+[0.3.2]: https://github.com/CLOUDWERX-DEV/agent-sudo/releases/tag/v0.3.2
 [0.3.1]: https://github.com/CLOUDWERX-DEV/agent-sudo/releases/tag/v0.3.1
 [0.3.0]: https://github.com/CLOUDWERX-DEV/agent-sudo/releases/tag/v0.3.0

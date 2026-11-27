@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img alt="version" src="https://img.shields.io/badge/version-0.3.1-ff6b81?style=flat-square"></a>
+  <a href="CHANGELOG.md"><img alt="version" src="https://img.shields.io/badge/version-0.3.2-ff6b81?style=flat-square"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-ffc857?style=flat-square"></a>
   <img alt="rust" src="https://img.shields.io/badge/rust-single%20binary-ff6b81?style=flat-square">
   <img alt="dependencies" src="https://img.shields.io/badge/dependencies-2-ffc857?style=flat-square">

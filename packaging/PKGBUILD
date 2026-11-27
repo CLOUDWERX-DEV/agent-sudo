@@ -1,6 +1,6 @@
 # Maintainer: CLOUDWERX LAB <mail@cloudwerxlab.com>
 pkgname=agent-sudo
-pkgver=0.3.1
+pkgver=0.3.2
 pkgrel=1
 pkgdesc='Run commands as root without a password prompt, behind guardrails and an audit log'
 arch=('x86_64' 'aarch64')
