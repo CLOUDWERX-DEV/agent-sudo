@@ -50,7 +50,6 @@ The tests never run `sudo` and never touch your system. Installs go to a staging
 | `src/notify.rs` | The desktop notification, sent as the account with root's groups dropped. |
 | `src/install.rs` | `--install` and `--uninstall`. |
 | `src/completions.rs` | Fish, bash and zsh completions. |
-| `examples/make_logo.rs` | The logo generator. |
 
 ## Recipes
 

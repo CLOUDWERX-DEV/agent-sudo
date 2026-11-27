@@ -136,7 +136,7 @@ cargo test
 cargo clippy --all-targets
 ```
 
-Tests never run `sudo` and never touch your system: installs go to a staging folder, and there are well over a hundred guardrail cases, random-input tests, and end to end tests of the real binary. See [CONTRIBUTING.md](CONTRIBUTING.md). The logo is drawn by `cargo run --example make_logo`.
+Tests never run `sudo` and never touch your system: installs go to a staging folder, and there are well over a hundred guardrail cases, random-input tests, and end to end tests of the real binary. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Support
 

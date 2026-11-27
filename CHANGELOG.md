@@ -2,6 +2,14 @@
 
 All notable changes to `agent-sudo` are in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **A new logo**: a terminal window with a shield and padlock, in the icon and the banner (`assets/`). The vector mark is `assets/src/logo.svg`, traced from the artwork in `assets/src/logo-master.png`.
+- The pixel-art logo generator (`examples/make_logo.rs`) is gone; the icon and banner are plain files in `assets/`.
+
+
 ## [0.3.2] - 2026-11-27
 
 ### Fixed
@@ -30,7 +38,7 @@ First public release.
 - `--status` checks the runner (root-owned, not writable by others), the sudoers rule, that sudo allows it without a password, a health check, the log and the policy file, and exits 0 only when the root runner really works.
 - `--logs [N]`, `--version`, `--completions fish|bash|zsh` and a `--` form for commands that start with a dash.
 - The command passes through exactly: it is `exec`ed into sudo, and the root side forwards `SIGTERM` and `SIGHUP`, waits, and returns the exit code (`128 + signal` if it was killed).
-- Docs (how it works, guardrails, policy), a security policy that says plainly what this is and isn't, a CI workflow, release binaries for x86_64 and aarch64, a PKGBUILD, a pixel-art mascot (`cargo run --example make_logo`) and issue and pull request templates.
+- Docs (how it works, guardrails, policy), a security policy that says plainly what this is and isn't, a CI workflow, release binaries for x86_64 and aarch64, a PKGBUILD, a pixel-art mascot and issue and pull request templates.
 - Tests: well over a hundred table-driven guardrail cases, random-input tests, the root side run for real in a temporary directory, an installer test into a staging folder, and end to end tests of the real binary. Nothing in them runs `sudo`.
 
 [0.3.2]: https://github.com/CLOUDWERX-DEV/agent-sudo/releases/tag/v0.3.2
